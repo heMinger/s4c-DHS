@@ -1,0 +1,9 @@
+S4C-Pro-Adaptive Module Test Report
+==================================================
+
+Results: 4/4 tests passed
+
+  [PASSED] NeRF Adaptive Sampling
+  [PASSED] Ray Sampler
+  [PASSED] BTSNet Structure
+  [PASSED] DA3 Module

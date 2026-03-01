@@ -1,0 +1,156 @@
+# KDBTS-style Occupancy Evaluation Configuration
+# 
+# This config evaluates the model using KDBTS/ViPOcc-style metrics:
+# - Scene-level: scene_O_acc, scene_O_prec, scene_O_rec, scene_IE_acc, scene_IE_prec, scene_IE_rec
+# - Object-level (optional): object_O_acc, object_IE_acc, object_IE_rec
+#
+# Usage:
+#   python eval.py -cn eval_kdbts_occ checkpoint=/path/to/model.pt
+#
+# To compare with KDBTS paper results, use gt_aggregate_timesteps=20
+# To compare with ViPOcc paper results, use gt_aggregate_timesteps=300
+
+defaults:
+  - default
+  - data: kitti_360
+  - _self_
+
+name: "eval_kdbts_occ"
+model: "bts_occ"  # Uses evaluator_occ.py
+
+# Model checkpoint path (override via command line)
+checkpoint: ""
+
+# Logging settings
+log_every: 50
+batch_size: 1
+num_workers: 4
+
+# ============================================
+# Data Configuration
+# ============================================
+data:
+  image_size: [192, 640]
+  data_fc: 1
+  data_stereo: false
+  data_fisheye: false
+  is_preprocessed: false
+  
+  # Paths
+  data_path: "/data/lmh_data/KITTI360"
+  pose_path: "/data/lmh_data/KITTI360/poses"
+  split_path: "datasets/kitti_360/splits/sscbench"  # Test on sequence 09
+  
+  # Important: enable depth and lidar depth for evaluation
+  return_depth: false
+  return_lidar_depth: false
+  data_segmentation: false
+
+# ============================================
+# Model Configuration
+# ============================================
+model_conf:
+  arch: "BTSNet"
+  use_code: true
+  
+  code:
+    num_freqs: 6
+    freq_factor: 1.5
+    include_input: true
+  
+  encoder:
+    type: "monodepth2"
+    freeze: false
+    pretrained: true
+    resnet_layers: 50
+    num_ch_dec: [32, 32, 64, 128, 256]
+    d_out: 64
+  
+  mlp_coarse:
+    type: "resnet"
+    n_blocks: 0
+    d_hidden: 64
+  
+  mlp_fine:
+    type: "empty"
+    n_blocks: 1
+    d_hidden: 128
+  
+  segmentation_mode: "panoptic_deeplab"
+  
+  z_near: 3
+  z_far: 80
+  inv_z: true
+  code_mode: z
+  learn_empty: false
+  sample_color: true
+  
+  # DA3 adaptive sampling (needed for model compatibility)
+  adaptive_sampling: true
+  n_surface_samples: 24
+  n_global_samples: 40
+  absrel_prior: 0.10
+  min_thickness: 0.5
+  
+  # ============================================
+  # KDBTS/ViPOcc Occupancy Evaluation Settings
+  # ============================================
+  
+  # Evaluation space (KDBTS/ViPOcc standard)
+  x_range: [-4, 4]     # Lateral range: 8 meters total
+  y_range: [0, 0.75]   # Height range (single BEV slice)
+  z_range: [20, 4]     # Depth range: from 20m (far) to 4m (near)
+  
+  # Resolution: ppm=10 means 0.1m per point
+  ppm: 10              # Points per meter (resolution = 1/ppm = 0.1m)
+  ppm_y: 4             # Vertical resolution
+  y_res: 1             # Number of y slices (1 = BEV)
+  
+  # GT generation settings
+  # KDBTS uses 20 frames, ViPOcc uses 300 frames
+  # More frames = more complete GT but slower
+  gt_aggregate_timesteps: 20  # Set to 20 for KDBTS comparison, 300 for ViPOcc
+  
+  # Whether to cut the area behind the farthest visible surface
+  cut_far_invisible_area: false
+  
+  # Occupancy threshold
+  occ_threshold: 0.5
+  
+  # Query batch size (for GPU memory)
+  query_batch_size: 50000
+  
+  # ============================================
+  # Optional: Pre-computed GT (faster evaluation)
+  # ============================================
+  # Leave empty to compute GT from LiDAR on-the-fly
+  read_gt_occ_path: ""
+  # Set path to save computed GT for future use
+  save_gt_occ_path: ""
+  
+  # ============================================
+  # Optional: Object-level Evaluation (ViPOcc style)
+  # ============================================
+  is_eval_object: false
+  read_gt_obj_path: ""  # Path to Object_Label directory
+  obj_z_expand: 2       # Object z-direction expansion (meters)
+  obj_x_expand: 0.5     # Object x-direction expansion (meters)
+  
+  # ============================================
+  # Visualization Settings
+  # ============================================
+  save_vis: false
+  save_dir: "visualization/occ_eval"
+
+# ============================================
+# Renderer Configuration
+# ============================================
+renderer:
+  n_coarse: 64
+  n_fine: 0
+  n_fine_depth: 0
+  depth_std: 1.0
+  sched: []
+  white_bkgd: false
+  lindisp: true
+  hard_alpha_cap: true

@@ -1,0 +1,5 @@
+Checkpoint: out/kitti_360/kitti_360_backend-None-1_20260210-203842/training_checkpoint_151000-bp.pt
+Z range: [20.0, 4.0]
+X range: [-4, 4]
+PPM: 10
+

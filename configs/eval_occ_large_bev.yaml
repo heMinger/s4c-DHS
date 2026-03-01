@@ -1,0 +1,120 @@
+# Large-range BEV Occupancy Evaluation Configuration
+# 
+# Same range as SSCBench but BEV-only (single y-slice for faster evaluation)
+# - x: [-25.6, 25.6] meters (lateral)  
+# - y: single slice at 0.5m height
+# - z: [0, 51.2] meters (depth)
+#
+# Usage:
+#   python eval.py -cn eval_occ_large_bev checkpoint=/path/to/model.pt
+
+defaults:
+  - default
+  - data: kitti_360
+  - _self_
+
+name: "eval_occ_large_bev"
+model: "bts_occ"
+
+checkpoint: ""
+
+log_every: 50
+batch_size: 1
+num_workers: 4
+
+data:
+  image_size: [192, 640]
+  data_fc: 1
+  data_stereo: false
+  data_fisheye: false
+  is_preprocessed: false
+  
+  data_path: "/data/lmh_data/KITTI360"
+  pose_path: "/data/lmh_data/KITTI360/poses"
+  split_path: "datasets/kitti_360/splits/sscbench"
+  
+  return_depth: false
+  return_lidar_depth: false
+  data_segmentation: false
+
+model_conf:
+  arch: "BTSNet"
+  use_code: true
+  
+  code:
+    num_freqs: 6
+    freq_factor: 1.5
+    include_input: true
+  
+  encoder:
+    type: "monodepth2"
+    freeze: false
+    pretrained: true
+    resnet_layers: 50
+    num_ch_dec: [32, 32, 64, 128, 256]
+    d_out: 64
+  
+  mlp_coarse:
+    type: "resnet"
+    n_blocks: 0
+    d_hidden: 64
+  
+  mlp_fine:
+    type: "empty"
+    n_blocks: 1
+    d_hidden: 128
+  
+  segmentation_mode: "panoptic_deeplab"
+  
+  z_near: 3
+  z_far: 80
+  inv_z: true
+  code_mode: z
+  learn_empty: false
+  sample_color: true
+  
+  adaptive_sampling: true
+  n_surface_samples: 24
+  n_global_samples: 40
+  absrel_prior: 0.10
+  min_thickness: 0.5
+  
+  # ============================================
+  # Large-range BEV Evaluation Settings
+  # ============================================
+  x_range: [-25.6, 25.6]   # Lateral: 51.2m total
+  y_range: [0, 1.0]        # Height range for slice selection
+  z_range: [51.2, 0]       # Depth: 0-51.2m forward
+  
+  # BEV resolution (ppm=5 gives 0.2m resolution, same as SSCBench)
+  ppm: 5                   # Points per meter (0.2m resolution)
+  ppm_y: 1                 # Not used for BEV
+  y_res: 1                 # Single y-slice (BEV mode)
+  specify_yslice: 0.5      # Sample at y=0.5m (typical car height)
+  
+  # Total points per sample: 256 x 1 x 256 = 65,536 points (manageable)
+  
+  gt_aggregate_timesteps: 20
+  cut_far_invisible_area: false
+  
+  occ_threshold: 0.5
+  query_batch_size: 50000
+  
+  read_gt_occ_path: ""
+  save_gt_occ_path: ""
+  
+  is_eval_object: false
+  read_gt_obj_path: ""
+  
+  save_vis: false
+  save_dir: "visualization/occ_eval_large_bev"
+
+renderer:
+  n_coarse: 64
+  n_fine: 0
+  n_fine_depth: 0
+  depth_std: 1.0
+  sched: []
+  white_bkgd: false
+  lindisp: true
+  hard_alpha_cap: true

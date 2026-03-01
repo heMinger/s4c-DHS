@@ -1,0 +1,53 @@
+# KITTI-360 Dataset Configuration
+# Adapted for S4C-Pro-Adaptive with DA3 depth support
+# Updated: Lower resolution (192x640) + Online DA3 depth generation
+
+type: "KITTI_360"
+data_path: "/mnt/remote_data/lmh_data/KITTI360"
+# Use 192x640 resolution segmentation labels
+# data_segmentation_path: "/mnt/remote_data/lmh_data/KITTI360/mask2former_cityscapes_swinl_in21k_384_90k_ar_crop_192x640"
+# pose_path: "/mnt/remote_data/lmh_data/KITTI360/poses"
+split_path: "datasets/kitti_360/splits/sscbench"
+
+# data_path: "/mnt/disk2/lmh/KITTI360"
+data_segmentation_path: "/mnt/disk2/lmh/KITTI360/mask2former_cityscapes_swinl_in21k_384_90k_ar_crop_192x640"
+pose_path: "/mnt/disk2/lmh/KITTI360/pose"
+
+# Image configuration - use lower resolution for faster training
+# Will be resized from original 1408x376 to 192x640
+image_size: [192, 640]
+data_stereo: true
+data_fisheye: true
+data_fc: 2
+fisheye_rotation: -15
+fisheye_offset: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40]
+is_preprocessed: false
+constrain_to_datapoints: True
+
+# ============================================================
+# DA3 Depth Configuration (S4C-Pro-Adaptive v2)
+# ============================================================
+# Depth generation mode:
+# - offline: load pre-computed DA3 depth maps from PNG files
+# - online: generate depth maps on-the-fly using DA3NESTED-GIANT-LARGE
+depth_mode: "online"
+
+# Offline mode settings (ignored when depth_mode="online")
+depth_source: "da3"
+depth_da3_path: "/mnt/remote_data/lmh_data/KITTI360/data_2d_depth_da3"
+depth_da3_scale: 256.0
+
+# depth_da3_path: ""
+
+# Online DA3 depth generation settings
+da3_checkpoint_path: "/home/lmh/dino-da3-adaptive-sampling1/DA3/ckpt/DA3NESTED-GIANT-LARGE"
+da3_conf_percentile: 20.0  # Bottom 20% confidence uses uniform sampling
+
+# IMPORTANT: Must enable depth loading for adaptive sampling!
+return_depth: true
+# Load LiDAR depth GT for evaluation metrics (a1_lidar, abs_rel_lidar)
+return_lidar_depth: true
+
+# Segmentation
+data_segmentation: true
+

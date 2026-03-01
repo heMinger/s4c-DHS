@@ -1,0 +1,108 @@
+defaults:
+  - default
+  - data: kitti_360
+  - _self_
+
+name: "eval_vipocc_occ"
+model: "bts"
+checkpoint: "out/kitti_360/kitti_360_backend-None-1_20260210-203842/training_checkpoint_151000-bp.pt"
+
+log_every: 50
+batch_size: 1
+num_workers: 4
+
+data:
+  image_size: [192, 640]
+  data_fc: 1
+  return_stereo: false
+  return_fisheye: false
+  is_preprocessed: false
+  # Path to KITTI-360 dataset
+  data_path: "/data/lmh_data/KITTI360"
+  pose_path: "/data/lmh_data/KITTI360/poses"
+  split_path: "datasets/kitti_360/splits/seg"
+
+model_conf:
+  arch: "BTSNet"
+  use_code: true
+  
+  code:
+    num_freqs: 6
+    freq_factor: 1.5
+    include_input: true
+  
+  encoder:
+    type: "monodepth2"
+    freeze: false
+    pretrained: true
+    resnet_layers: 50
+    num_ch_dec: [32, 32, 64, 128, 256]
+    d_out: 64
+  
+  mlp_coarse:
+    type: "resnet"
+    n_blocks: 0
+    d_hidden: 64
+  
+  mlp_fine:
+    type: "empty"
+    n_blocks: 1
+    d_hidden: 128
+  
+  mlp_segmentation:
+    type: "resnet"
+    n_blocks: 0
+    d_hidden: 64
+  
+  segmentation_mode: "panoptic_deeplab"
+  
+  z_near: 3
+  z_far: 80
+  inv_z: true
+  code_mode: z
+  learn_empty: false
+  sample_color: true
+  
+  # DA3 adaptive sampling config
+  adaptive_sampling: true
+  n_surface_samples: 24
+  n_global_samples: 40
+  absrel_prior: 0.10
+  min_thickness: 0.5
+  
+  # ============================================
+  # ViPOcc-style Occupancy Evaluation Settings
+  # ============================================
+  # Scene evaluation range (in meters)
+  x_range: [-4, 4]     # lateral range
+  y_range: [0, 0.75]   # height range
+  z_range: [20, 4]     # depth range (far, near)
+  
+  # Resolution settings
+  ppm: 10              # points per meter (0.1m resolution)
+  ppm_y: 4             # vertical resolution
+  y_res: 1             # number of y slices
+  
+  # GT generation settings
+  gt_aggregate_timesteps: 300  # number of LiDAR frames for GT
+  cut_far_invisible_area: true
+  
+  # Optional: pre-computed GT path (leave empty to compute from LiDAR)
+  read_gt_occ_path: ""
+  
+  # Visualization settings
+  save_vis: false
+  save_dir: "visualization/occ_eval"
+  
+  # Query batch size for memory efficiency
+  query_batch_size: 50000
+
+renderer:
+  n_coarse: 64
+  n_fine: 0
+  n_fine_depth: 0
+  depth_std: 1.0
+  sched: []
+  white_bkgd: false
+  lindisp: true
+  hard_alpha_cap: true

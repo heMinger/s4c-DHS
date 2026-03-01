@@ -1,0 +1,128 @@
+# Large-range Occupancy Evaluation Configuration (SSCBench-style)
+# 
+# Evaluation range: 51.2m x 51.2m x 6.4m (same as SSCBench)
+# - x: [-25.6, 25.6] meters (lateral)
+# - y: [-2, 4.4] meters (height, 6.4m total)
+# - z: [0, 51.2] meters (depth, forward)
+#
+# Usage:
+#   python eval.py -cn eval_occ_large checkpoint=/path/to/model.pt
+
+defaults:
+  - default
+  - data: kitti_360
+  - _self_
+
+name: "eval_occ_large"
+model: "bts_occ"
+
+checkpoint: ""
+
+log_every: 50
+batch_size: 1
+num_workers: 4
+
+data:
+  image_size: [192, 640]
+  data_fc: 1
+  data_stereo: false
+  data_fisheye: false
+  is_preprocessed: false
+  
+  data_path: "/data/lmh_data/KITTI360"
+  pose_path: "/data/lmh_data/KITTI360/poses"
+  split_path: "datasets/kitti_360/splits/sscbench"
+  
+  return_depth: false
+  return_lidar_depth: false
+  data_segmentation: false
+
+model_conf:
+  arch: "BTSNet"
+  use_code: true
+  
+  code:
+    num_freqs: 6
+    freq_factor: 1.5
+    include_input: true
+  
+  encoder:
+    type: "monodepth2"
+    freeze: false
+    pretrained: true
+    resnet_layers: 50
+    num_ch_dec: [32, 32, 64, 128, 256]
+    d_out: 64
+  
+  mlp_coarse:
+    type: "resnet"
+    n_blocks: 0
+    d_hidden: 64
+  
+  mlp_fine:
+    type: "empty"
+    n_blocks: 1
+    d_hidden: 128
+  
+  segmentation_mode: "panoptic_deeplab"
+  
+  z_near: 3
+  z_far: 80
+  inv_z: true
+  code_mode: z
+  learn_empty: false
+  sample_color: true
+  
+  adaptive_sampling: true
+  n_surface_samples: 24
+  n_global_samples: 40
+  absrel_prior: 0.10
+  min_thickness: 0.5
+  
+  # ============================================
+  # Large-range Evaluation Settings (SSCBench-style)
+  # ============================================
+  # Range: 51.2m x 51.2m x 6.4m
+  x_range: [-25.6, 25.6]   # Lateral: 51.2m total
+  y_range: [-2, 4.4]       # Height: 6.4m total (ground at y=0)
+  z_range: [51.2, 0]       # Depth: 0-51.2m forward (far to near)
+  
+  # Resolution settings
+  # ppm=2 gives 0.5m resolution (manageable for large range)
+  # Total points: 102 x 13 x 102 ≈ 135k points per sample
+  ppm: 2                   # Points per meter (0.5m resolution)
+  ppm_y: 2                 # Vertical resolution
+  y_res: 13                # Number of y slices (6.4m / 0.5m ≈ 13)
+  
+  # For BEV-only evaluation (faster, comparable to KDBTS/ViPOcc)
+  # Uncomment below to use single y-slice:
+  # y_res: 1
+  # specify_yslice: 0.5    # Sample at y=0.5m (above ground)
+  
+  # GT generation
+  gt_aggregate_timesteps: 20
+  cut_far_invisible_area: false
+  
+  occ_threshold: 0.5
+  query_batch_size: 30000  # Reduced for larger point count
+  
+  read_gt_occ_path: ""
+  save_gt_occ_path: ""
+  
+  is_eval_object: false
+  read_gt_obj_path: ""
+  obj_z_expand: 2
+  obj_x_expand: 0.5
+  
+  save_vis: false
+  save_dir: "visualization/occ_eval_large"
+
+renderer:
+  n_coarse: 64
+  n_fine: 0
+  n_fine_depth: 0
+  depth_std: 1.0
+  sched: []
+  white_bkgd: false
+  lindisp: true
+  hard_alpha_cap: true
